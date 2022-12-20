@@ -1,44 +1,70 @@
 from tqdm import tqdm
 import cv2
-from getFile import getFileNameAndOutput
+import numpy as np
+from functions.getFile import fileNameHandler
  
 
 class videoWriterClass:
-
     def __init__(self):
-        (inputFilename, outputFilename) = getFileNameAndOutput()
-        self.vidCapIn = cv2.VideoCapture(inputFilename)
+        self.fHandler = fileNameHandler()
+        self.vidCapIn = cv2.VideoCapture(self.fHandler.inFilename)
 
         if not self.vidCapIn.isOpened():
            print('Cannot open video - Script aborted')
            exit(1)
-
+            
+    def creatOutputVideo(self, fcn: callable ,vidDim: tuple) -> None:
         # create output video writer
         fourc = int(self.vidCapIn.get(cv2.CAP_PROP_FOURCC))
         fps = int(self.vidCapIn.get(cv2.CAP_PROP_FPS))
-        width = int(self.vidCapIn.get(cv2.CAP_PROP_FRAME_WIDTH ))
-        height = int(self.vidCapIn.get(cv2.CAP_PROP_FRAME_HEIGHT ))
+        if vidDim is None:
+            width = int(self.vidCapIn.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(self.vidCapIn.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            vidDim = (width, height)
+        self.Nframes = int(self.vidCapIn.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.vidCapOut = cv2.VideoWriter(self.fHandler.outFilename, fourc, fps, vidDim)
 
-        self.Nframes = int(self.vidCapIn.get(cv2.CAP_PROP_FRAME_COUNT ))
-        self.vidCapOut = cv2.VideoWriter(str(outputFilename), fourc, fps, (width, height))
+        try:
+            self.vidCapIn.set(cv2.CAP_PROP_POS_FRAMES, 0) # start at the beginning
+            pbar = tqdm(total=self.Nframes)
+            while(self.vidCapIn.isOpened()):
+                ret, frame = self.vidCapIn.read() # Capture frame-by-frame
+                if ret == True:
+                    frame = fcn(frame) # Do the transformation
+                    self.vidCapOut.write(frame)
+                    pbar.update(1) # update progress bar            
+                else: # Break the loop
+                    print('cannot open video')
+                    break     
+            self.vidCapIn.release(), self.vidCapOut.release()
+        except AttributeError:
+            print("Add suffix to create an Ouptu Videowriter!")
+            
     
-    def creatOutputVideo(self, fcn: callable) -> None:
-        pbar = tqdm(total=self.Nframes)
+    def getSingleImage(self, frameNumber: int) -> np.ndarray:
+        self.vidCapIn.set(cv2.CAP_PROP_POS_FRAMES, frameNumber)
+        ret, img = self.vidCapIn.read()
+        if ret == True:
+            return img
+        else:
+            print('Error no image found')
+            return None
+    
+    def __iter__(self) -> np.ndarray:
         while(self.vidCapIn.isOpened()):
             ret, frame = self.vidCapIn.read() # Capture frame-by-frame
-            frame = fcn(frame)
             if ret == True:
-                self.vidCapOut.write(frame)
-                pbar.update(1) # update progress bar            
-            else: # Break the loop
-                print('cannot open video')
-                break     
-        self.vidCapIn.release(), self.vidCapOut.release()
+                yield frame
+        yield StopIteration
 
-def otsu(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    th,otsu = cv2.threshold(gray,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-    return otsu
-    
-test = videoWriterClass()
-test.creatOutputVideo(otsu)
+
+from functions.diameters import burstingDiameter, spreadDiameter
+import seaborn as sns
+import matplotlib as plt
+
+if __name__ == '__main__':
+    def myCropp(frame: np.ndarray) -> np.ndarray:
+        return frame[50:1000, 450:1400,:] # crop image
+
+    myWriter = videoWriterClass()
+    myWriter.creatOutputVideo(vidDim = (950,950), fcn = myCropp)

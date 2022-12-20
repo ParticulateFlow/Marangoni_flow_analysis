@@ -1,103 +1,57 @@
 import numpy as np
 import cv2
 
+def centerAndAllDiameters(frame: np.ndarray) -> tuple:
+    '''Takes a frame and exports the center and diameters'''
 
-def spreadDiameter(bw: np.ndarray) -> tuple:
-    """Takes a binary image of the droplet and extracts the spread diameter"""
-    
-    # smoth the image a little bit
+    # STATES
+    # + droplet (r_sd, r_bd, r_cd)
+    # + tranient (r_sd, r_bd)
+    # + disappeared (r_sd)
+
+    # convert to grayscale and otsu method
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    th,otsu = cv2.threshold(gray,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+
+    # smooth image
     kernel = np.ones((10,10))
-    bw = cv2.dilate(bw, kernel)
+    otsu = cv2.dilate(otsu, kernel)
 
     # Find contours
-    cnts, _ = cv2.findContours(bw, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    # Concatenate all contours -> to get the outer one
-    cnts = np.concatenate(cnts)
+    cnts, _ = cv2.findContours(otsu, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = np.concatenate(cnts) # Concatenate all contours -> to get the outer one
 
-    # # Determine and draw bounding rectangle
+    # determine and draw bounding rectangle
     x, y, w, h = cv2.boundingRect(cnts)
     center = (int(x+w/2), int(y+h/2))
-    radius = np.min([int(w/2),int(h/2)])
+    r_sd = np.min([int(w/2),int(h/2)])
 
-    return (center, radius)
+    # convert to polar coordinates
+    polar_image = cv2.warpPolar(
+            src=otsu,
+            center=center,
+            dsize=(r_sd,h),
+            maxRadius=r_sd, 
+            flags=cv2.WARP_FILL_OUTLIERS)
 
+    # chnage data type and calculate mean over columns
+    polar_image = np.float32(polar_image)
+    p_mean = np.mean(polar_image, axis=0, dtype=np.float32)
 
-def burstingDiameter(bw: np.ndarray) -> tuple:
-    """returns the bursting diameter (bd) of a droplet"""
-    
-    center_cd, radius_cd = coreDiameter(bw=bw)
-
-    if center_cd is not None:
-        mask = np.zeros(bw.shape[:2], dtype="uint8")
-        mask = cv2.circle(mask, center_cd, radius_cd+5, 255, -1)
-        bw = cv2.subtract(bw,mask)
-    kernel = np.ones((30,30))
-    bw = cv2.dilate(bw, kernel)
-
-    contours,hierachies = cv2.findContours(bw, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    hierachies = hierachies[0]
-
-    index = np.where(hierachies[:,3] < 0)
-    contours = np.asarray(contours, dtype='object')
-    f_cnt = np.delete(contours, index, axis=0)
-    f_h = np.delete(hierachies, index, axis=0)
-
-    if f_cnt.size == 0:
-        return (None, None)
-    
-    circle,radius =circleApproximation(f_cnt[-1])
-
-    #check if result is good
-    imgSize = bw.size
-    circleSize = radius**2 * 3.14
-
-    if(circleSize/imgSize > 0.05):
-        return (circle, radius)
+    # core diameter
+    index_core = np.where(p_mean == 255)[0]
+    band_core = len(index_core)
+    if band_core >= 15:
+        r_cd = index_core[-1]
     else:
-        return (None, None)
+        r_cd = None
 
+    # burst diameter
+    index_burst= np.where(p_mean <= 20)[0]
+    band_burst = len(index_burst)
+    if band_burst >= 15:
+        r_bd = index_burst[-1]
+    else:
+        r_bd = None
 
-def coreDiameter(bw: np.ndarray) -> tuple:
-    """Takes a binary image of the droplet and extracts the core diameter (cd)"""
-
-    # Find the contours
-    contours,hierachies = cv2.findContours(bw, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    hierachies = hierachies[0] # get the actual inner list of hierarchy descriptions
-
-    # Filter contours by area
-    percent = 1 
-    areaTH = int(bw.size*percent/100)
-
-    filtered_hierachy, filtered_contour = [], []
-    for cnt, h in zip(contours,hierachies):
-        if cv2.contourArea(cnt)>areaTH:
-            filtered_hierachy.append(h)
-            filtered_contour.append(cnt)
-
-    # check if lists contains elements
-    if not filtered_contour:
-        # no core diameter found
-        return (None,None)
-    
-    # reorder everything to extract only the inner bloob
-    if len(filtered_hierachy) > 1:
-        filtered_hierachy = np.asarray(filtered_hierachy, dtype='object')
-        index = list(np.where(filtered_hierachy[:,2] == -1))
-        filtered_hierachy = np.delete(filtered_hierachy, index, axis=0)
-        filtered_contour = np.asarray(filtered_contour, dtype='object')
-        filtered_contour = np.delete(filtered_contour, index, axis = 0)
-
-    # retrieve the contour approximation
-    return circleApproximation(filtered_contour[-1])
-
-
-## Helping functions
-
-def circleApproximation(cnt: np.ndarray) -> tuple:
-    '''After the searched contour is extracted the circle approximation
-    could be retourned'''
-    (x,y) ,r = cv2.minEnclosingCircle(cnt)
-    center = (int(x),int(y))
-    radius = int(r)
-    return (center, radius)
+    return (center, r_cd, r_bd, r_sd)

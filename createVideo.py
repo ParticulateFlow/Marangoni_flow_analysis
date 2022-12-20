@@ -3,7 +3,6 @@ from tqdm import tqdm
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 
 # self written functions
 from functions.getOtsu import getOtsu
