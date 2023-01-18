@@ -4,8 +4,8 @@ import cv2
 video = videoHandling.videoHandler()
 
 
-for frame in video:
-    print(dataExtraction.centerAndAllDiameters(frame))
+for img in video:
+    print(dataExtraction.centerAndAllDiameters(frame=img))
 
 
 def otsu(frame):

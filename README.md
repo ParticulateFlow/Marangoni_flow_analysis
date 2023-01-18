@@ -15,17 +15,17 @@ The current release could extract the diameters of a droplet as shown in the tab
   <tr>
     <td>
         <img src="images/maragoni_flow_acquired.jpg"
-        height="150"
+        height="200"
         style="display: block; margin: 0 auto" />
     </td>
     <td>
         <img src="images/maragoni_flow_processed.jpg"
-        height="150"
+        height="200"
         style="display: block; margin: 0 auto">
     </td>
     <td>
         <img src="images/abstract_description.jpg"
-        height="150"
+        height="200"
         style="display: block; margin: 0 auto">
     </td>
   </tr>
@@ -74,20 +74,24 @@ for frame in video:
     print(frame)
 
 # transformation function -> Example OTSU
-def userDefindedFunction(frame):
+def otsu(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     th,otsu = cv2.threshold(gray,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
     img = cv2.cvtColor(otsu, cv2.COLOR_GRAY2RGB)
     return img
 
 # creates an output video by a user defined function
-video.creatOutputVideo(fcn=userDefindedFunction, vidDim=None)    
+video.creatOutputVideo(fcn=otsu, vidDim=None)    
 ```
-The _video.createOutputVideo_ is a pipeline with the following function:
+The _video.createOutputVideo_ can also take video dimension for cropping options. The function itself is a pipeline system shown in the flow chart
 ```mermaid
 flowchart LR
-    movie-->|frame|userDefiniedFunction-->|frame|outputVideo
+    movie-->|frame|userDefiniedFunction\nExample:Otsu-->|frame|outputVideo
 ```
 
 ## Data Extraction
-
+The function centerAndAllDiameters() from the dataExtraction.py script returns the parameters $c_y$, $c_y$, $r_c$, $r_b$, $r_s$ as a tuple. They can afterwards be extracted as a csv file
+```python
+for img in video:
+    print(dataExtraction.centerAndAllDiameters(frame=img))
+```

@@ -4,11 +4,6 @@ import cv2
 def centerAndAllDiameters(frame: np.ndarray) -> tuple:
     '''Takes a frame and exports the center and diameters'''
 
-    # STATES
-    # + droplet (r_sd, r_bd, r_cd)
-    # + tranient (r_sd, r_bd)
-    # + disappeared (r_sd)
-
     if len(frame.shape) == 3:
         # convert to grayscale and otsu method
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -27,14 +22,14 @@ def centerAndAllDiameters(frame: np.ndarray) -> tuple:
     # determine and draw bounding rectangle
     x, y, w, h = cv2.boundingRect(cnts)
     center = (int(x+w/2), int(y+h/2))
-    r_sd = np.min([int(w/2),int(h/2)])
+    rs = np.min([int(w/2),int(h/2)])
 
     # convert to polar coordinates
     polar_image = cv2.warpPolar(
             src=otsu,
             center=center,
-            dsize=(r_sd,otsu.shape[1]),
-            maxRadius=r_sd, 
+            dsize=(rs,otsu.shape[1]),
+            maxRadius=rs, 
             flags=cv2.WARP_FILL_OUTLIERS)
 
     # chnage data type and calculate mean over columns
@@ -45,19 +40,19 @@ def centerAndAllDiameters(frame: np.ndarray) -> tuple:
     index_core = np.where(p_mean == 255)[0]
     band_core = len(index_core)
     if band_core >= 15:
-        r_cd = index_core[-1]
+        rc = index_core[-1]
     else:
-        r_cd = None
+        rc = None
 
     # burst diameter
     index_burst= np.where(p_mean <= 20)[0]
     band_burst = len(index_burst)
     if band_burst >= 15:
-        r_bd = index_burst[-1]
+        rb = index_burst[-1]
     else:
-        r_bd = None
+        rb = None
 
-    return (center, r_cd, r_bd, r_sd)
+    return (center, rc, rb, rs)
 
 
 def removeCore(bw: np.ndarray) -> np.ndarray:
