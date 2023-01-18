@@ -9,9 +9,12 @@ def centerAndAllDiameters(frame: np.ndarray) -> tuple:
     # + tranient (r_sd, r_bd)
     # + disappeared (r_sd)
 
-    # convert to grayscale and otsu method
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    th,otsu = cv2.threshold(gray,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    if len(frame.shape) == 3:
+        # convert to grayscale and otsu method
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        th,otsu = cv2.threshold(gray,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    else:
+        otsu = frame.copy()
 
     # smooth image
     kernel = np.ones((10,10))
@@ -30,7 +33,7 @@ def centerAndAllDiameters(frame: np.ndarray) -> tuple:
     polar_image = cv2.warpPolar(
             src=otsu,
             center=center,
-            dsize=(r_sd,h),
+            dsize=(r_sd,otsu.shape[1]),
             maxRadius=r_sd, 
             flags=cv2.WARP_FILL_OUTLIERS)
 
