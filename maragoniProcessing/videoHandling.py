@@ -52,13 +52,7 @@ class videoHandler():
                 pbar.close()
                 print('VideoWriter closed')
                 break     
-        self.vidCapIn.release(), self.vidCapOut.release()
-    
-    @property
-    def dimension(self):
-        return self.vidDim
-
-            
+        self.vidCapIn.release(), self.vidCapOut.release()           
     
     def getSingleImage(self, frameNumber: int) -> np.ndarray:
         '''returns a frame selected by a frame number'''
