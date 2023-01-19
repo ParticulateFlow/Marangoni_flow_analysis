@@ -60,7 +60,7 @@ In the code snippet the module ist loaded and a videoHandler class from the vide
 
 ## Video Handling
 Calling the videoHandler class a filedialog is opened. By selection of the expirement the video variable is created
-<img src="images/select_video.jpg"
+<img src="images/select_video.JPG"
 width="600"
 style="display: block; margin: 0 auto" />
 
