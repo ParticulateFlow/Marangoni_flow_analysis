@@ -90,6 +90,21 @@ flowchart LR
 ```
 
 ## Data Extraction
+
+### Calibration
+To get real world dimension a calibration image is needed. A good choice is a checkerboard with known grid and checker size. A good online generator is [calib.io](https://calib.io).
+<img src="images/calibration_image.JPG"
+width="600"
+style="display: block; margin: 0 auto" />
+Just import the function and you will get the scaling factor and a verification image
+```python
+scal, calibImg = scalingFactor(
+    calib_img=calibImg,
+    patternSize=(4,4),
+    checkerSize=10)
+```
+
+### Radius
 The function centerAndAllDiameters() from the dataExtraction.py script returns the parameters $c_y$, $c_y$, $r_c$, $r_b$, $r_s$ as a tuple. They can afterwards be extracted as a csv file
 ```python
 for img in video:
