@@ -93,7 +93,7 @@ flowchart LR
 
 ### Calibration
 To get real world dimension a calibration image is needed. A good choice is a checkerboard with known grid and checker size. A good online generator is [calib.io](https://calib.io).
-<img src="images/calibration_image.JPG"
+<img src="images/calibration_image.jpg"
 width="600"
 style="display: block; margin: 0 auto" />
 Just import the function and you will get the scaling factor and a verification image
